@@ -1,35 +1,95 @@
-/* *
- * This sample demonstrates handling intents from an Alexa skill using the Alexa Skills Kit SDK (v2).
- * Please visit https://alexa.design/cookbook for additional examples on implementing slots, dialog management,
- * session persistence, api calls, and more.
- * */
 const Alexa = require('ask-sdk-core');
+const scenarios = require('./data/scenarios.json');
+
+const BREAK_MS = 700;
+
+function buildScenarioSsml(item) {
+    const idx = item.script.lastIndexOf(item.word);
+    if (idx === -1) {
+        return `<speak>${item.script}</speak>`;
+    }
+    const before = item.script.slice(0, idx);
+    const after = item.script.slice(idx);
+    return `<speak>${before}<break time="${BREAK_MS}ms"/>${after}</speak>`;
+}
+
+// 未出題のシナリオから1つランダムに選び、セッション属性を更新して返す。
+// 全問出題済みならnullを返す。
+function pickNextScenario(sessionAttributes) {
+    const answeredIndices = sessionAttributes.answeredIndices || [];
+    const remaining = scenarios
+        .map((_, index) => index)
+        .filter((index) => !answeredIndices.includes(index));
+
+    if (remaining.length === 0) {
+        return null;
+    }
+
+    const pickedIndex = remaining[Math.floor(Math.random() * remaining.length)];
+    const newAnsweredIndices = answeredIndices.concat(pickedIndex);
+
+    sessionAttributes.answeredIndices = newAnsweredIndices;
+
+    return {
+        scenario: scenarios[pickedIndex],
+        isLast: newAnsweredIndices.length === scenarios.length
+    };
+}
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
     handle(handlerInput) {
-        const speakOutput = 'Welcome, you can say Hello or Help. Which would you like to try?';
+        const sessionAttributes = {};
+        const result = pickNextScenario(sessionAttributes);
+        handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
 
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(speakOutput)
+        const speakOutput = result.isLast
+            ? `${buildScenarioSsml(result.scenario)}<speak>これで全部の問題が終わりです。お疲れさまでした！</speak>`
+            : buildScenarioSsml(result.scenario);
+
+        const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
+
+        if (result.isLast) {
+            return responseBuilder.withShouldEndSession(true).getResponse();
+        }
+
+        return responseBuilder
+            .reprompt('<speak>「次」と言うと、次の問題に進みます。</speak>')
             .getResponse();
     }
 };
 
-const HelloWorldIntentHandler = {
+const NextIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'HelloWorldIntent';
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'NextIntent';
     },
     handle(handlerInput) {
-        const speakOutput = 'Hello World!';
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        const result = pickNextScenario(sessionAttributes);
+        handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
 
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
+        if (!result) {
+            return handlerInput.responseBuilder
+                .speak('<speak>もう問題は残っていません。これでゲーム終了です。お疲れさまでした！</speak>')
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+
+        const speakOutput = result.isLast
+            ? `${buildScenarioSsml(result.scenario)}<speak>これで全部の問題が終わりです。お疲れさまでした！</speak>`
+            : buildScenarioSsml(result.scenario);
+
+        const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
+
+        if (result.isLast) {
+            return responseBuilder.withShouldEndSession(true).getResponse();
+        }
+
+        return responseBuilder
+            .reprompt('<speak>「次」と言うと、次の問題に進みます。</speak>')
             .getResponse();
     }
 };
@@ -40,7 +100,7 @@ const HelpIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
     },
     handle(handlerInput) {
-        const speakOutput = 'You can say hello to me! How can I help?';
+        const speakOutput = '四字熟語カルタです。読み上げるお話をよく聞いて、最後に出てくる四字熟語の札を取ってください。「次」と言うと、次の問題に進みます。';
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -56,25 +116,22 @@ const CancelAndStopIntentHandler = {
                 || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
     },
     handle(handlerInput) {
-        const speakOutput = 'Goodbye!';
+        const speakOutput = 'また遊ぼうね。さようなら！';
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
+            .withShouldEndSession(true)
             .getResponse();
     }
 };
-/* *
- * FallbackIntent triggers when a customer says something that doesn’t map to any intents in your skill
- * It must also be defined in the language model (if the locale supports it)
- * This handler can be safely added but will be ingnored in locales that do not support it yet 
- * */
+
 const FallbackIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.FallbackIntent';
     },
     handle(handlerInput) {
-        const speakOutput = 'Sorry, I don\'t know about that. Please try again.';
+        const speakOutput = 'ごめんなさい、よくわかりませんでした。「次」と言うと次の問題に進みます。';
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -82,51 +139,37 @@ const FallbackIntentHandler = {
             .getResponse();
     }
 };
-/* *
- * SessionEndedRequest notifies that a session was ended. This handler will be triggered when a currently open 
- * session is closed for one of the following reasons: 1) The user says "exit" or "quit". 2) The user does not 
- * respond or says something that does not match an intent defined in your voice model. 3) An error occurs 
- * */
+
 const SessionEndedRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'SessionEndedRequest';
     },
     handle(handlerInput) {
         console.log(`~~~~ Session ended: ${JSON.stringify(handlerInput.requestEnvelope)}`);
-        // Any cleanup logic goes here.
-        return handlerInput.responseBuilder.getResponse(); // notice we send an empty response
+        return handlerInput.responseBuilder.getResponse();
     }
 };
-/* *
- * The intent reflector is used for interaction model testing and debugging.
- * It will simply repeat the intent the user said. You can create custom handlers for your intents 
- * by defining them above, then also adding them to the request handler chain below 
- * */
+
 const IntentReflectorHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest';
     },
     handle(handlerInput) {
         const intentName = Alexa.getIntentName(handlerInput.requestEnvelope);
-        const speakOutput = `You just triggered ${intentName}`;
+        const speakOutput = `${intentName} が呼ばれました。`;
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
-            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
             .getResponse();
     }
 };
-/**
- * Generic error handling to capture any syntax or routing errors. If you receive an error
- * stating the request handler chain is not found, you have not implemented a handler for
- * the intent being invoked or included it in the skill builder below 
- * */
+
 const ErrorHandler = {
     canHandle() {
         return true;
     },
     handle(handlerInput, error) {
-        const speakOutput = 'Sorry, I had trouble doing what you asked. Please try again.';
+        const speakOutput = 'すみません、うまく処理できませんでした。もう一度お試しください。';
         console.log(`~~~~ Error handled: ${JSON.stringify(error)}`);
 
         return handlerInput.responseBuilder
@@ -136,15 +179,10 @@ const ErrorHandler = {
     }
 };
 
-/**
- * This handler acts as the entry point for your skill, routing all request and response
- * payloads to the handlers above. Make sure any new handlers or interceptors you've
- * defined are included below. The order matters - they're processed top to bottom 
- * */
 exports.handler = Alexa.SkillBuilders.custom()
     .addRequestHandlers(
         LaunchRequestHandler,
-        HelloWorldIntentHandler,
+        NextIntentHandler,
         HelpIntentHandler,
         CancelAndStopIntentHandler,
         FallbackIntentHandler,
@@ -152,5 +190,5 @@ exports.handler = Alexa.SkillBuilders.custom()
         IntentReflectorHandler)
     .addErrorHandlers(
         ErrorHandler)
-    .withCustomUserAgent('sample/hello-world/v1.2')
+    .withCustomUserAgent('yojijukugo-karuta/v1.0')
     .lambda();

@@ -2,7 +2,14 @@
   "askcliStatesVersion": "2020-03-31",
   "profiles": {
     "default": {
-      "skillId": "amzn1.ask.skill.5423cc3a-66c8-4256-847e-e03cb4e3f897"
+      "skillId": "amzn1.ask.skill.5423cc3a-66c8-4256-847e-e03cb4e3f897",
+      "deploymentStatus": "COMPLETE",
+      "skillMetadata": {
+        "lastImportId": "amzn1.ask-package.import.cd26a60c-d997-4141-b28b-c2ba22136c1f",
+        "lastImportTimestamp": "2026-08-09T21:19:42.865Z",
+        "lastDeployHash": "2gtWYp7SXSVMYhjPkTKbsctKrmQ=",
+        "lastDeployType": "interaction-model"
+      }
     }
   }
 }

@@ -15,21 +15,27 @@
           "samples": []
         },
         {
-          "slots": [],
-          "name": "HelloWorldIntent",
-          "samples": [
-            "hello",
-            "ハロー",
-            "こんにちは"
-          ]
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
         },
         {
           "name": "AMAZON.NavigateHomeIntent",
           "samples": []
+        },
+        {
+          "slots": [],
+          "name": "NextIntent",
+          "samples": [
+            "次",
+            "次に",
+            "次の問題",
+            "次お願い",
+            "つぎ"
+          ]
         }
       ],
       "types": [],
-      "invocationName": "四字熟語"
+      "invocationName": "四字熟語カルタ"
     }
   }
 }
