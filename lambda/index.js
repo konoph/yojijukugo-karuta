@@ -3,14 +3,13 @@ const scenarios = require('./data/scenarios.json');
 
 const BREAK_MS = 700;
 
-function buildScenarioSsml(item) {
+function buildScenarioSsml(item, trailingText) {
     const idx = item.script.lastIndexOf(item.word);
-    if (idx === -1) {
-        return `<speak>${item.script}</speak>`;
-    }
-    const before = item.script.slice(0, idx);
-    const after = item.script.slice(idx);
-    return `<speak>${before}<break time="${BREAK_MS}ms"/>${after}</speak>`;
+    const body = idx === -1
+        ? item.script
+        : `${item.script.slice(0, idx)}<break time="${BREAK_MS}ms"/>${item.script.slice(idx)}`;
+    const trailer = trailingText ? `<break time="500ms"/>${trailingText}` : '';
+    return `<speak>${body}${trailer}</speak>`;
 }
 
 // 未出題のシナリオから1つランダムに選び、セッション属性を更新して返す。
@@ -45,9 +44,10 @@ const LaunchRequestHandler = {
         const result = pickNextScenario(sessionAttributes);
         handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
 
-        const speakOutput = result.isLast
-            ? `${buildScenarioSsml(result.scenario)}<speak>これで全部の問題が終わりです。お疲れさまでした！</speak>`
-            : buildScenarioSsml(result.scenario);
+        const speakOutput = buildScenarioSsml(
+            result.scenario,
+            result.isLast ? 'これで全部の問題が終わりです。お疲れさまでした！' : null
+        );
 
         const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
 
@@ -78,9 +78,10 @@ const NextIntentHandler = {
                 .getResponse();
         }
 
-        const speakOutput = result.isLast
-            ? `${buildScenarioSsml(result.scenario)}<speak>これで全部の問題が終わりです。お疲れさまでした！</speak>`
-            : buildScenarioSsml(result.scenario);
+        const speakOutput = buildScenarioSsml(
+            result.scenario,
+            result.isLast ? 'これで全部の問題が終わりです。お疲れさまでした！' : null
+        );
 
         const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
 
