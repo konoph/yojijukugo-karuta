@@ -229,6 +229,12 @@ Phase 1では、可能な限りシンプルな公開方法を採用する。
 
 GitHub Pagesの設定や公開方法については、現在のGitHubリポジトリ構成に合わせてREADMEまたは開発者向けドキュメントに記載する。
 
+### 公開設定
+
+- 公開URL: https://konoph.github.io/yojijukugo-karuta/
+- 公開方法: `web/` はリポジトリルート直下にあり、GitHub Pagesのブランチデプロイ（root または `/docs` のみ対応）では直接配信できないため、GitHub Actions（`.github/workflows/pages.yml`）で `web/` を配信している
+- `web/**` への変更を `main` にpushすると自動的に再デプロイされる
+
 ---
 
 ## 10. Phase 1でやらないこと
