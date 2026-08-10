@@ -1,10 +1,12 @@
 (function () {
   const startButton = document.getElementById('start-button');
   const nextButton = document.getElementById('next-button');
+  const repeatButton = document.getElementById('repeat-button');
   const statusEl = document.getElementById('status');
 
   let scenarios = [];
   let answeredIndices = [];
+  let currentScenario = null;
   let busy = false;
 
   function setStatus(text) {
@@ -45,39 +47,56 @@
 
   function showEnded() {
     setStatus('すべての問題が終わりました。お疲れさまでした！');
+    currentScenario = null;
     nextButton.classList.add('hidden');
+    repeatButton.classList.add('hidden');
     startButton.textContent = 'もう一度あそぶ';
     startButton.classList.remove('hidden');
+  }
+
+  function setBusy(isBusy) {
+    busy = isBusy;
+    nextButton.disabled = isBusy;
+    repeatButton.disabled = isBusy;
   }
 
   async function handleNext() {
     if (busy) {
       return;
     }
-    busy = true;
-    nextButton.disabled = true;
+    setBusy(true);
 
     const result = pickNextScenario();
 
     if (!result) {
       showEnded();
-      busy = false;
+      setBusy(false);
       return;
     }
 
+    currentScenario = result.scenario;
+    repeatButton.classList.remove('hidden');
     setStatus(`${answeredIndices.length}問目 / 全${scenarios.length}問`);
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    await speak(result.scenario.script);
+    await speak(currentScenario.script);
 
     if (result.isLast) {
       showEnded();
-      busy = false;
+      setBusy(false);
       return;
     }
 
-    busy = false;
-    nextButton.disabled = false;
+    setBusy(false);
+  }
+
+  async function handleRepeat() {
+    if (busy || !currentScenario) {
+      return;
+    }
+    setBusy(true);
+    await speak(currentScenario.script);
+    setBusy(false);
   }
 
   async function handleStart() {
@@ -91,14 +110,15 @@
       scenarios = await loadScenarios();
     }
     answeredIndices = [];
+    currentScenario = null;
 
     startButton.classList.add('hidden');
     startButton.disabled = false;
     nextButton.classList.remove('hidden');
-    nextButton.disabled = false;
+    repeatButton.classList.add('hidden');
     setStatus(`全${scenarios.length}問`);
 
-    busy = false;
+    setBusy(false);
   }
 
   if (!('speechSynthesis' in window)) {
@@ -107,5 +127,6 @@
   } else {
     startButton.addEventListener('click', handleStart);
     nextButton.addEventListener('click', handleNext);
+    repeatButton.addEventListener('click', handleRepeat);
   }
 })();
