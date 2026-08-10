@@ -45,6 +45,26 @@
     });
   }
 
+  // 読み間違いを避けるため、表示用の漢字混じりscriptではなく
+  // 全文ひらがなのscriptReadingを読み上げに使う。
+  // SpeechSynthesisUtteranceはSSMLを解釈しないため、答えの
+  // 四字熟語の手前で間を置きたい場合は前後半に分けて発話し、
+  // 間にタイマー待機を挟む。
+  async function speakScenario(item) {
+    const idx = item.scriptReading.lastIndexOf(item.reading);
+    if (idx === -1) {
+      await speak(item.scriptReading);
+      return;
+    }
+
+    const before = item.scriptReading.slice(0, idx);
+    const after = item.scriptReading.slice(idx);
+
+    await speak(before);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await speak(after);
+  }
+
   function showEnded() {
     setStatus('すべての問題が終わりました。お疲れさまでした！');
     currentScenario = null;
@@ -79,7 +99,7 @@
     setStatus(`${answeredIndices.length}問目 / 全${scenarios.length}問`);
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    await speak(currentScenario.script);
+    await speakScenario(currentScenario);
 
     if (result.isLast) {
       showEnded();
@@ -95,7 +115,7 @@
       return;
     }
     setBusy(true);
-    await speak(currentScenario.script);
+    await speakScenario(currentScenario);
     setBusy(false);
   }
 

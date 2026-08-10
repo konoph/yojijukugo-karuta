@@ -3,11 +3,13 @@ const scenarios = require('./data/scenarios.json');
 
 const BREAK_MS = 700;
 
+// 読み間違いを避けるため、表示用の漢字混じりscriptではなく
+// 全文ひらがなのscriptReadingを読み上げに使う。
 function buildScenarioSsml(item, trailingText) {
-    const idx = item.script.lastIndexOf(item.word);
+    const idx = item.scriptReading.lastIndexOf(item.reading);
     const body = idx === -1
-        ? item.script
-        : `${item.script.slice(0, idx)}<break time="${BREAK_MS}ms"/>${item.script.slice(idx)}`;
+        ? item.scriptReading
+        : `${item.scriptReading.slice(0, idx)}<break time="${BREAK_MS}ms"/>${item.scriptReading.slice(idx)}`;
     const trailer = trailingText ? `<break time="500ms"/>${trailingText}` : '';
     return `<speak>${body}${trailer}</speak>`;
 }
