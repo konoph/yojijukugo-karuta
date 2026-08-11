@@ -4,21 +4,21 @@
   const repeatButton = document.getElementById('repeat-button');
   const statusEl = document.getElementById('status');
 
-  let scenarios = [];
+  let cards = [];
   let answeredIndices = [];
-  let currentScenario = null;
+  let currentCard = null;
   let busy = false;
 
   function setStatus(text) {
     statusEl.textContent = text;
   }
 
-  function loadScenarios() {
-    return fetch('data/scenarios.json').then((res) => res.json());
+  function loadCards() {
+    return fetch('data/cards.json').then((res) => res.json());
   }
 
-  function pickNextScenario() {
-    const remaining = scenarios
+  function pickNextCard() {
+    const remaining = cards
       .map((_, index) => index)
       .filter((index) => !answeredIndices.includes(index));
 
@@ -30,44 +30,24 @@
     answeredIndices.push(pickedIndex);
 
     return {
-      scenario: scenarios[pickedIndex],
-      isLast: answeredIndices.length === scenarios.length
+      card: cards[pickedIndex],
+      isLast: answeredIndices.length === cards.length
     };
   }
 
-  function speak(text) {
+  // 事前生成済みの音声ファイル（音読さん Advanced TTS API）を再生する。
+  function playCard(item) {
     return new Promise((resolve) => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ja-JP';
-      utterance.onend = resolve;
-      utterance.onerror = resolve;
-      window.speechSynthesis.speak(utterance);
+      const audio = new Audio(`data/${item.audio}`);
+      audio.onended = resolve;
+      audio.onerror = resolve;
+      audio.play().catch(resolve);
     });
-  }
-
-  // 読み間違いを避けるため、表示用の漢字混じりscriptではなく
-  // 全文ひらがなのscriptReadingを読み上げに使う。
-  // SpeechSynthesisUtteranceはSSMLを解釈しないため、答えの
-  // 四字熟語の手前で間を置きたい場合は前後半に分けて発話し、
-  // 間にタイマー待機を挟む。
-  async function speakScenario(item) {
-    const idx = item.scriptReading.lastIndexOf(item.reading);
-    if (idx === -1) {
-      await speak(item.scriptReading);
-      return;
-    }
-
-    const before = item.scriptReading.slice(0, idx);
-    const after = item.scriptReading.slice(idx);
-
-    await speak(before);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    await speak(after);
   }
 
   function showEnded() {
     setStatus('すべての問題が終わりました。お疲れさまでした！');
-    currentScenario = null;
+    currentCard = null;
     nextButton.classList.add('hidden');
     repeatButton.classList.add('hidden');
     startButton.textContent = 'もう一度あそぶ';
@@ -86,7 +66,7 @@
     }
     setBusy(true);
 
-    const result = pickNextScenario();
+    const result = pickNextCard();
 
     if (!result) {
       showEnded();
@@ -94,12 +74,12 @@
       return;
     }
 
-    currentScenario = result.scenario;
+    currentCard = result.card;
     repeatButton.classList.remove('hidden');
-    setStatus(`${answeredIndices.length}問目 / 全${scenarios.length}問`);
+    setStatus(`${answeredIndices.length}問目 / 全${cards.length}問`);
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    await speakScenario(currentScenario);
+    await playCard(currentCard);
 
     if (result.isLast) {
       showEnded();
@@ -111,11 +91,11 @@
   }
 
   async function handleRepeat() {
-    if (busy || !currentScenario) {
+    if (busy || !currentCard) {
       return;
     }
     setBusy(true);
-    await speakScenario(currentScenario);
+    await playCard(currentCard);
     setBusy(false);
   }
 
@@ -126,27 +106,22 @@
     busy = true;
     startButton.disabled = true;
 
-    if (scenarios.length === 0) {
-      scenarios = await loadScenarios();
+    if (cards.length === 0) {
+      cards = await loadCards();
     }
     answeredIndices = [];
-    currentScenario = null;
+    currentCard = null;
 
     startButton.classList.add('hidden');
     startButton.disabled = false;
     nextButton.classList.remove('hidden');
     repeatButton.classList.add('hidden');
-    setStatus(`全${scenarios.length}問`);
+    setStatus(`全${cards.length}問`);
 
     setBusy(false);
   }
 
-  if (!('speechSynthesis' in window)) {
-    setStatus('お使いのブラウザは音声読み上げに対応していません。');
-    startButton.disabled = true;
-  } else {
-    startButton.addEventListener('click', handleStart);
-    nextButton.addEventListener('click', handleNext);
-    repeatButton.addEventListener('click', handleRepeat);
-  }
+  startButton.addEventListener('click', handleStart);
+  nextButton.addEventListener('click', handleNext);
+  repeatButton.addEventListener('click', handleRepeat);
 })();
