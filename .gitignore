@@ -1,3 +1,5 @@
 .env
 node_modules/
 lambda/data/audio/
+lambda/test-ssml-out/
+lambda/test-tone-out/
