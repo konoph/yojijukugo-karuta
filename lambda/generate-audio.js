@@ -28,7 +28,7 @@ const ENV_PATH = path.join(__dirname, '..', '.env');
 const API_BASE = 'https://ondoku3.com/api/advanced-tts/';
 const VOICE = 'Misa';
 const MODEL = 'pro'; // 高品質（flash は高速）
-const TONE = '幼児向け四字熟語カルタの読み手';
+const TONE = '幼児向け四字熟語カルタの読み手。入力文を追加・省略・言い換えず、一字一句そのまま読み上げてください。';
 
 // POST は 30回/60秒の制限があるため、余裕を持たせた間隔で送信する。
 const POST_INTERVAL_MS = 2000;
@@ -53,15 +53,16 @@ function sleep(ms) {
 }
 
 // text-kanji.txt の1行（「あ<TAB>あっちこっち …」）を、
-// TTS 送信用「あ・・あっちこっち …」に変換する。
-// 1文字目と本文の間に「・・」を挟み、子供がカルタを取りやすくする。
+// TTS 送信用「あ。あっちこっち …」に変換する。
+// 1文字目と本文の間に句点「。」を挟み、1文字目が独立した文として確実に読まれるようにする。
+// （「・・」のような記号はTTSに無視されることがあるため、句点が最も確実）
 function buildReadingLine(rawLine) {
     const parts = rawLine.split('\t');
     if (parts.length >= 2) {
         const head = parts[0].trim();
         const body = parts.slice(1).join('\t').trim();
         if (head && body) {
-            return `${head}・・${body}`;
+            return `${head}。${body}`;
         }
     }
     // フォーマットが壊れていたらそのまま返す
