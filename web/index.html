@@ -8,11 +8,28 @@
 </head>
 <body>
 <main>
+  <div class="top-bar">
+    <button id="back-button" class="icon-button hidden" type="button" aria-label="ひとつ前の札に戻る" title="ひとつ前の札に戻る">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button id="repeat-button" class="icon-button hidden" type="button" aria-label="もう一度読む" title="もう一度読む">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20 12a8 8 0 1 1-2.3-5.6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
   <h1>四字熟語カルタ</h1>
   <p id="status" class="status"></p>
-  <button id="start-button" class="big-button">ゲーム開始</button>
-  <button id="next-button" class="big-button hidden">次の札を読む</button>
-  <button id="repeat-button" class="big-button hidden">もう一度読む</button>
+  <button id="start-button" class="big-button" type="button">ゲーム開始</button>
+  <button id="next-button" class="next-button hidden" type="button" aria-label="次の札を読む" title="次の札を読む">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
 </main>
 <script src="app.js"></script>
 </body>
