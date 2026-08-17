@@ -1,24 +1,34 @@
 /*
- * 音読さん Advanced TTS API（Beta）を使い、lambda/data/text.txt の各行から
+ * 音読さん Advanced TTS API（Beta）を使い、lambda/data/text-kanji.txt の各行から
  * 音声ファイルを事前生成する。
+ *
+ * text-kanji.txt は「ひらがな1文字 \t 漢字混じり読み上げ文」の形式。
+ * 読み上げの元ネタは lambda/data/text.txt（ひらがな版）で、
+ * text-kanji.txt は text.txt を漢字混じりに書き直した参照用テキスト。
+ *
+ * TTS へ送信するテキストは、各札の先頭に「あ・・あっちこっち …」のように
+ * カルタの1文字目とポーズ（・・）を付けたものにする。
+ * これにより子供がカルタを取りやすくなる。
+ *
+ * システムプロンプト（TONE）は「幼児向け四字熟語カルタの読み手」。
  *
  * 使い方: node lambda/generate-audio.js
  *
- * 出力: lambda/data/audio/01.mp3, 02.mp3, ...（text.txt の行順）
+ * 出力: lambda/data/audio/01.mp3, 02.mp3, ...（text-kanji.txt の行順）
  * 生成済みのファイルはスキップされるため、途中で失敗しても再実行で再開できる。
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const TEXT_PATH = path.join(__dirname, 'data', 'text.txt');
+const TEXT_PATH = path.join(__dirname, 'data', 'text-kanji.txt');
 const OUTPUT_DIR = path.join(__dirname, 'data', 'audio');
 const ENV_PATH = path.join(__dirname, '..', '.env');
 
 const API_BASE = 'https://ondoku3.com/api/advanced-tts/';
 const VOICE = 'Misa';
 const MODEL = 'pro'; // 高品質（flash は高速）
-const TONE = '明るく元気に読み上げてください';
+const TONE = '幼児向け四字熟語カルタの読み手';
 
 // POST は 30回/60秒の制限があるため、余裕を持たせた間隔で送信する。
 const POST_INTERVAL_MS = 2000;
@@ -40,6 +50,22 @@ function loadAccessToken() {
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// text-kanji.txt の1行（「あ<TAB>あっちこっち …」）を、
+// TTS 送信用「あ・・あっちこっち …」に変換する。
+// 1文字目と本文の間に「・・」を挟み、子供がカルタを取りやすくする。
+function buildReadingLine(rawLine) {
+    const parts = rawLine.split('\t');
+    if (parts.length >= 2) {
+        const head = parts[0].trim();
+        const body = parts.slice(1).join('\t').trim();
+        if (head && body) {
+            return `${head}・・${body}`;
+        }
+    }
+    // フォーマットが壊れていたらそのまま返す
+    return rawLine.trim();
 }
 
 async function submitJob(token, text) {
@@ -109,15 +135,17 @@ async function downloadAudio(url, outputPath) {
 async function main() {
     const token = loadAccessToken();
 
-    const lines = fs
+    const rawLines = fs
         .readFileSync(TEXT_PATH, 'utf8')
         .split('\n')
         .map((line) => line.trim())
         .filter((line) => line.length > 0);
 
+    const lines = rawLines.map(buildReadingLine);
+
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-    console.log(`${lines.length}件の音声を生成します（voice: ${VOICE}, model: ${MODEL}）`);
+    console.log(`${lines.length}件の音声を生成します（voice: ${VOICE}, model: ${MODEL}, tone: ${TONE}）`);
 
     for (let i = 0; i < lines.length; i++) {
         const number = String(i + 1).padStart(2, '0');
