@@ -58,7 +58,7 @@ h1 {
   cursor: not-allowed;
 }
 
-/* 次の札を読む：大きめの角丸 右矢印ボタン */
+/* 次の札を読む：大きめの角丸 右矢印ボタン（再生中は一時停止アイコンに切り替え） */
 .next-button {
   display: flex;
   align-items: center;
@@ -79,9 +79,15 @@ h1 {
   background: #d35400;
 }
 
+/* 待機中（次の札を選ぶ前の1秒間）だけグレーアウト */
 .next-button:disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+
+/* 一時停止中は色を変えて状態を明示する */
+.next-button.is-paused {
+  background: #c0a070;
 }
 
 .next-button svg {
