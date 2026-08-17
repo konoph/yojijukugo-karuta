@@ -53,15 +53,15 @@ function sleep(ms) {
 }
 
 // text-kanji.txt の1行（「あ<TAB>あっちこっち …」）を、
-// TTS 送信用「あ、、あっちこっち …」に変換する。
-// 1文字目と本文の間に「、、」を挟み、子供がカルタを取りやすくする。
+// TTS 送信用「あ・・あっちこっち …」に変換する。
+// 1文字目と本文の間に「・・」を挟み、子供がカルタを取りやすくする。
 function buildReadingLine(rawLine) {
     const parts = rawLine.split('\t');
     if (parts.length >= 2) {
         const head = parts[0].trim();
         const body = parts.slice(1).join('\t').trim();
         if (head && body) {
-            return `${head}、、${body}`;
+            return `${head}・・${body}`;
         }
     }
     // フォーマットが壊れていたらそのまま返す
