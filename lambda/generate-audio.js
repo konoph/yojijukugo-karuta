@@ -15,6 +15,7 @@
  * 使い方: node lambda/generate-audio.js
  *
  * 出力: lambda/data/audio/01.mp3, 02.mp3, ...（text-kanji.txt の行順）
+ *       生成後 web/data/audio/ にも自動コピーされる（Webアプリで再生するため）
  * 生成済みのファイルはスキップされるため、途中で失敗しても再実行で再開できる。
  */
 
@@ -23,6 +24,7 @@ const path = require('path');
 
 const TEXT_PATH = path.join(__dirname, 'data', 'text-kanji.txt');
 const OUTPUT_DIR = path.join(__dirname, 'data', 'audio');
+const WEB_AUDIO_DIR = path.join(__dirname, '..', 'web', 'data', 'audio');
 const ENV_PATH = path.join(__dirname, '..', '.env');
 
 const API_BASE = 'https://ondoku3.com/api/advanced-tts/';
@@ -164,7 +166,12 @@ async function main() {
         const result = await pollJob(token, job);
         await downloadAudio(result.url, outputPath);
 
-        console.log(`[${number}/${lines.length}] 保存しました: ${outputPath}`);
+        // web/data/audio/ にコピーして、Webアプリで即利用できるようにする
+        fs.mkdirSync(WEB_AUDIO_DIR, { recursive: true });
+        const webPath = path.join(WEB_AUDIO_DIR, `${number}.mp3`);
+        fs.copyFileSync(outputPath, webPath);
+
+        console.log(`[${number}/${lines.length}] 保存しました: ${outputPath} → ${webPath}`);
 
         if (i < lines.length - 1) {
             await sleep(POST_INTERVAL_MS);
