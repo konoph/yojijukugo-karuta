@@ -6,15 +6,13 @@
  * 読み上げの元ネタは lambda/data/text.txt（ひらがな版）で、
  * text-kanji.txt は text.txt を漢字混じりに書き直した参照用テキスト。
  *
- * TTS へ送信するテキストは、各札の先頭に「あ・・あっちこっち …」のように
- * カルタの1文字目とポーズ（・・）を付けたものにする。
- * これにより子供がカルタを取りやすくなる。
+ * TTS へ送信するテキストは本文（タブ以降）のみとし、先頭の1文字（カルタの頭文字）は読み上げない。
  *
  * システムプロンプト（TONE）は「幼児向け四字熟語カルタの読み手」。
  *
  * 使い方: node lambda/generate-audio.js
  *
- * 出力: lambda/data/audio/01.mp3, 02.mp3, ...（text-kanji.txt の行順）
+ * 出力: lambda/data/audio/a.mp3, i.mp3, ...（各行の1文字目をヘボン式ローマ字にしたファイル名）
  *       生成後 web/data/audio/ にも自動コピーされる（Webアプリで再生するため）
  * 生成済みのファイルはスキップされるため、途中で失敗しても再実行で再開できる。
  */
@@ -31,9 +29,24 @@ const API_BASE = 'https://ondoku3.com/api/advanced-tts/';
 const VOICE = 'Misa';
 const MODEL = 'pro'; // 高品質（flash は高速）
 const TONE = '幼児向け四字熟語カルタの読み手。入力文を追加・省略・言い換えず、一字一句そのまま読み上げてください。';
+const SEED = -260350950; // 声色固定用（全音声で同じ声色に揃える）
 
 // POST は 30回/60秒の制限があるため、余裕を持たせた間隔で送信する。
 const POST_INTERVAL_MS = 2000;
+
+// text-kanji.txt の1文字目（ひらがな）→ ファイル名用ヘボン式ローマ字
+const ROMAJI = {
+    'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o',
+    'か': 'ka', 'き': 'ki', 'く': 'ku', 'け': 'ke', 'こ': 'ko',
+    'さ': 'sa', 'し': 'shi', 'す': 'su', 'せ': 'se', 'そ': 'so',
+    'た': 'ta', 'ち': 'chi', 'つ': 'tsu', 'て': 'te', 'と': 'to',
+    'な': 'na', 'に': 'ni', 'ぬ': 'nu', 'ね': 'ne', 'の': 'no',
+    'は': 'ha', 'ひ': 'hi', 'ふ': 'fu', 'へ': 'he', 'ほ': 'ho',
+    'ま': 'ma', 'み': 'mi', 'む': 'mu', 'め': 'me', 'も': 'mo',
+    'や': 'ya', 'ゆ': 'yu', 'よ': 'yo',
+    'ら': 'ra', 'り': 'ri', 'る': 'ru', 'れ': 're', 'ろ': 'ro',
+    'わ': 'wa', 'を': 'wo', 'ん': 'n',
+};
 
 function loadAccessToken() {
     const content = fs.readFileSync(ENV_PATH, 'utf8');
@@ -54,21 +67,28 @@ function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// text-kanji.txt の1行（「あ<TAB>あっちこっち …」）を、
-// TTS 送信用「あ。あっちこっち …」に変換する。
-// 1文字目と本文の間に句点「。」を挟み、1文字目が独立した文として確実に読まれるようにする。
-// （「・・」のような記号はTTSに無視されることがあるため、句点が最も確実）
+// text-kanji.txt の1行（「あ<TAB>あっちこっち …」）から、
+// TTS 送信用の本文「あっちこっち …」（先頭の1文字を除いた部分）を取り出す。
 function buildReadingLine(rawLine) {
     const parts = rawLine.split('\t');
     if (parts.length >= 2) {
-        const head = parts[0].trim();
         const body = parts.slice(1).join('\t').trim();
-        if (head && body) {
-            return `${head}。${body}`;
+        if (body) {
+            return body;
         }
     }
     // フォーマットが壊れていたらそのまま返す
     return rawLine.trim();
+}
+
+// text-kanji.txt の1行の先頭1文字（ひらがな）から、ファイル名用のローマ字を求める。
+function buildFileName(rawLine) {
+    const head = rawLine.split('\t')[0].trim();
+    const romaji = ROMAJI[head];
+    if (!romaji) {
+        throw new Error(`ROMAJI マップに存在しない頭文字です: "${head}"`);
+    }
+    return romaji;
 }
 
 async function submitJob(token, text) {
@@ -83,6 +103,7 @@ async function submitJob(token, text) {
             voice: VOICE,
             model: MODEL,
             tone: TONE,
+            seed: SEED,
         }),
     });
     const body = await res.json();
@@ -145,22 +166,24 @@ async function main() {
         .filter((line) => line.length > 0);
 
     const lines = rawLines.map(buildReadingLine);
+    const fileNames = rawLines.map(buildFileName);
 
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-    console.log(`${lines.length}件の音声を生成します（voice: ${VOICE}, model: ${MODEL}, tone: ${TONE}）`);
+    console.log(`${lines.length}件の音声を生成します（voice: ${VOICE}, model: ${MODEL}, tone: ${TONE}, seed: ${SEED}）`);
 
     for (let i = 0; i < lines.length; i++) {
-        const number = String(i + 1).padStart(2, '0');
-        const outputPath = path.join(OUTPUT_DIR, `${number}.mp3`);
+        const fileName = fileNames[i];
+        const outputPath = path.join(OUTPUT_DIR, `${fileName}.mp3`);
         const text = lines[i];
+        const progress = `${i + 1}/${lines.length} ${fileName}`;
 
         if (fs.existsSync(outputPath)) {
-            console.log(`[${number}/${lines.length}] スキップ（既存）: ${text}`);
+            console.log(`[${progress}] スキップ（既存）: ${text}`);
             continue;
         }
 
-        console.log(`[${number}/${lines.length}] 生成中: ${text}`);
+        console.log(`[${progress}] 生成中: ${text}`);
 
         const job = await submitJob(token, text);
         const result = await pollJob(token, job);
@@ -168,10 +191,10 @@ async function main() {
 
         // web/data/audio/ にコピーして、Webアプリで即利用できるようにする
         fs.mkdirSync(WEB_AUDIO_DIR, { recursive: true });
-        const webPath = path.join(WEB_AUDIO_DIR, `${number}.mp3`);
+        const webPath = path.join(WEB_AUDIO_DIR, `${fileName}.mp3`);
         fs.copyFileSync(outputPath, webPath);
 
-        console.log(`[${number}/${lines.length}] 保存しました: ${outputPath} → ${webPath}`);
+        console.log(`[${progress}] 保存しました: ${outputPath} → ${webPath}`);
 
         if (i < lines.length - 1) {
             await sleep(POST_INTERVAL_MS);
