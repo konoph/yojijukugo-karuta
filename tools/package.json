@@ -1,0 +1,8 @@
+{
+  "name": "audio-tools",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "generate-audio": "node generate-audio.js"
+  }
+}

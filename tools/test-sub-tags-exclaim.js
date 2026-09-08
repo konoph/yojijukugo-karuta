@@ -2,8 +2,8 @@
  * 文末が撥音「ん」で終わる行で、末尾の句点「。」を感嘆符「!」に変えると
  * 発話の欠落が直るか検証する（猪突猛進・自画自賛で改善を確認済み）。
  *
- * 使い方: node lambda/test-sub-tags-exclaim.js
- * 出力: lambda/test-sub-out/{ローマ字}-exclaim.mp3
+ * 使い方: node tools/test-sub-tags-exclaim.js
+ * 出力: tools/test-sub-out/{ローマ字}-exclaim.mp3
  */
 const fs = require('fs');
 const path = require('path');

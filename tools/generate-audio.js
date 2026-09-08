@@ -1,18 +1,18 @@
 /*
- * 音読さん Advanced TTS API（Beta）を使い、lambda/data/text-kanji.txt の各行から
+ * 音読さん Advanced TTS API（Beta）を使い、tools/data/text-kanji.txt の各行から
  * 音声ファイルを事前生成する。
  *
  * text-kanji.txt は「ひらがな1文字 \t 漢字混じり読み上げ文」の形式。
- * 読み上げの元ネタは lambda/data/text.txt（ひらがな版）で、
+ * 読み上げの元ネタは tools/data/text.txt（ひらがな版）で、
  * text-kanji.txt は text.txt を漢字混じりに書き直した参照用テキスト。
  *
  * TTS へ送信するテキストは本文（タブ以降）のみとし、先頭の1文字（カルタの頭文字）は読み上げない。
  *
  * システムプロンプト（TONE）は「幼児向け四字熟語カルタの読み手」。
  *
- * 使い方: node lambda/generate-audio.js
+ * 使い方: node tools/generate-audio.js
  *
- * 出力: lambda/data/audio/a.mp3, i.mp3, ...（各行の1文字目をヘボン式ローマ字にしたファイル名）
+ * 出力: tools/data/audio/a.mp3, i.mp3, ...（各行の1文字目をヘボン式ローマ字にしたファイル名）
  *       生成後 web/data/audio/ にも自動コピーされる（Webアプリで再生するため）
  * 生成済みのファイルはスキップされるため、途中で失敗しても再実行で再開できる。
  */

@@ -4,8 +4,8 @@
  *
  * 対象は text-kanji.txt の一部の行のみ（全件生成前の抜き取りテスト）。
  *
- * 使い方: node lambda/test-sub-tags.js
- * 出力: lambda/test-sub-out/{ローマ字}.mp3
+ * 使い方: node tools/test-sub-tags.js
+ * 出力: tools/test-sub-out/{ローマ字}.mp3
  */
 const fs = require('fs');
 const path = require('path');
@@ -122,7 +122,7 @@ async function main() {
         }
     }
 
-    console.log('完了。lambda/test-sub-out/ の音声を聞いてルビが正しく反映されているか確認してください。');
+    console.log('完了。tools/test-sub-out/ の音声を聞いてルビが正しく反映されているか確認してください。');
 }
 
 main().catch((err) => {

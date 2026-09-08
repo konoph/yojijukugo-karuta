@@ -124,7 +124,7 @@ Web版では、可能な限り既存のカルタデータと読み上げ文章�
 
 ### 採用した方針
 
-Phase 1では `lambda/data/scenarios.json` の内容を `web/data/scenarios.json` へそのままコピーして利用する。
+読み上げ文章は `tools/data/text-kanji.txt` を元データとし、`tools/generate-audio.js` で音声ファイルを事前生成して `web/data/audio/` にコピーする。`web/data/cards.json` には読み上げテキストと対応する音声ファイルパスを持たせる。
 
 ビルドステップや共有ディレクトリへのシンボリックリンクなどの仕組みは導入しない（GitHub Pagesでの静的公開・過度な抽象化の回避を優先するため）。
 
@@ -132,45 +132,26 @@ Phase 1では `lambda/data/scenarios.json` の内容を `web/data/scenarios.json
 
 ## 7. ディレクトリ構成
 
-現在のAlexa版は削除せず、既存の実装として残す。
+Web版への移行が確定したため、Alexa版（`lambda/`, `skill-package/`, `.ask/`, `ask-resources.json`）は削除した。
 
-Web版はAlexa版とは独立したディレクトリとして追加する。
-
-基本的には以下のような構成を想定する。
-
-```text
-/
-├── alexa/              # 既存のAlexa Skill
-├── web/                # Web版プロトタイプ
-│   ├── index.html
-│   ├── style.css
-│   └── app.js
-├── data/                # 既存データを確認して必要に応じて利用
-└── プロジェクト概要.md
-```
-
-ただし、実際のリポジトリ構成を確認したうえで、既存プロジェクトに最も自然な構成を採用する。
-
-Alexa版を削除したり、Web版への移行を理由として大規模なディレクトリ変更を行ったりしない。
-
-Alexa版は、今回のWeb版プロトタイプに至るまでの実験・比較対象として残す。
+音声生成ツールはAlexa専用コードではないため `tools/` として残し、Web版の運用に引き続き利用する。
 
 ### 採用した構成
 
-既存のAlexa版ファイル（`lambda/`, `skill-package/`, `.ask/`, `ask-resources.json`）はルート直下のまま移動しない。
-
-Web版は新規に `web/` ディレクトリを追加する形で導入する。
-
 ```text
 /
-├── lambda/              # 既存のAlexa Skill（Lambda）
-├── skill-package/       # 既存のAlexa Skill（manifest・interaction model）
+├── tools/               # 読み上げ音声の生成ツール（Alexaとは独立）
+│   ├── generate-audio.js
+│   └── data/
+│       ├── text.txt
+│       └── text-kanji.txt
 ├── web/                 # Web版プロトタイプ
 │   ├── index.html
 │   ├── style.css
 │   ├── app.js
 │   └── data/
-│       └── scenarios.json
+│       ├── cards.json
+│       └── audio/
 └── README.md
 ```
 
@@ -286,9 +267,7 @@ Phase 4
 
 などを検討する。
 
-また、Alexa版についても、Web版の検証結果を踏まえて今後の扱いを判断する。
-
-現時点ではAlexa版を廃止することを決定しない。
+なお、Alexa版はWeb版への移行に伴い運用を終了し、リポジトリからも削除した。
 
 ---
 
