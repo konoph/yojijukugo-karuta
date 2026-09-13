@@ -20,8 +20,9 @@ const MODEL = 'pro';
 const TONE = '幼児向け四字熟語カルタの読み手。入力文を追加・省略・言い換えず、一字一句そのまま読み上げてください。';
 const SEED = -260350950;
 
-// 検証したい頭文字のみ抜き取る（晴耕雨読=四字熟語前を句点→読点に変更してリトライ）
-const TARGET_HEADS = ['て'];
+// 検証したい頭文字のみ抜き取る
+// れ=温故知新, ろ=無芸大食 (sub alias→phonemeタグに変更してリトライ)
+const TARGET_HEADS = ['れ', 'ろ'];
 
 function loadAccessToken() {
     const content = fs.readFileSync(ENV_PATH, 'utf8');
